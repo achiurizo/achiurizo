@@ -1,0 +1,51 @@
+name: live
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - config.toml
+      - "themes/**"
+      - "scripts/**"
+      - "fonts/**"
+      - requirements.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install --require-hashes -r requirements.txt
+      - run: python -m pytest -q
+      - run: python -m scripts.build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Commit when the banner changed
+        run: |
+          # The bot identity keeps this commit out of achiurizo's contribution
+          # count. A commit authored as achiurizo would raise the count and
+          # cause the next commit.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets README.md
+          if git diff --cached --quiet; then
+            echo "banner unchanged"
+          else
+            git commit -m "chore: refresh header"
+            git pull --rebase
+            git push
+          fi
