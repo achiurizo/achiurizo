@@ -16,14 +16,16 @@ title = "dreeft"                         # tooltip, optional
 # Dated rules. The first rule whose range holds today's date (UTC) replaces the
 # theme, and the right segment's suffix when the rule sets one. from and to are
 # MM-DD, both days included. A range may wrap over the new year.
+# The day changes at 00:00 UTC, which is the previous afternoon in Los Angeles.
+# Halloween runs through 11-01 so the pumpkin lasts all of Oct 31 there.
 [[schedule]]
 from = "10-01"
-to = "10-31"
+to = "11-01"
 theme = "halloween"
 suffix = " \U0001F383"                 # jack-o'-lantern
 
 [[schedule]]
-from = "11-01"
+from = "11-02"
 to = "12-31"
 theme = "christmas"
 suffix = " \U0001F384"                 # tree
