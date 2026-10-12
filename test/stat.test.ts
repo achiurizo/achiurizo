@@ -46,3 +46,14 @@ BAD.forEach((bad, i) => {
     expect(() => total(bad)).toThrow(StatError);
   });
 });
+
+test("an HTTP error is reported as such, not as a missing user", async () => {
+  const { spyOn } = await import("bun:test");
+  const { fetchTotal } = await import("../src/stat");
+  const spy = spyOn(globalThis, "fetch").mockResolvedValue(new Response('{"message":"Bad credentials"}', { status: 401 }));
+  try {
+    await expect(fetchTotal("bad-token")).rejects.toThrow("HTTP 401");
+  } finally {
+    spy.mockRestore();
+  }
+});

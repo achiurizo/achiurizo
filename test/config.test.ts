@@ -159,3 +159,16 @@ test("an emoji suffix written as a TOML escape loads", () => {
   appendFileSync(join(repo, "config.toml"), '\n[segments.right]\nsuffix = " \\U0001F383"\n');
   expect(load(repo).right.suffix).toBe(" " + cp(0x1f383));
 });
+
+test("a link with a malformed host is rejected", () => {
+  const repo = tempRepo();
+  edit(join(repo, "config.toml"), "https://github.com/achiurizo/dreeft", "https://[abc");
+  fails(repo, "segments.middle.link is not a complete https URL");
+});
+
+test("segments are checked left to right", () => {
+  const repo = tempRepo();
+  edit(join(repo, "config.toml"), '"since 2008"', '""');
+  appendFileSync(join(repo, "config.toml"), '\n[segments.right]\ntext = "hello"\n');
+  fails(repo, "segments.left.text is empty");
+});

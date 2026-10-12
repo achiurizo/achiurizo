@@ -49,6 +49,7 @@ export async function fetchTotal(token: string, login = "achiurizo", firstYear =
       body: JSON.stringify({ query: query(login, firstYear, lastYear) }),
       signal: AbortSignal.timeout(30_000),
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
     payload = await response.json();
   } catch (error) {
     throw new StatError(`GitHub API request failed: ${(error as Error).message}`);

@@ -90,7 +90,10 @@ function arrow(x: number, direction: 1 | -1, fill: string): string {
   return `<polygon points="${num(base)},${BAR_Y} ${num(tip)},${num(mid)} ${num(base)},${BAR_Y + BAR_H}" fill="${fill}"/>`;
 }
 
-export function render(cfg: Config, scheme: Scheme, count: number, faces: Faces): [svg: string, bar: Bar] {
+// decorate false leaves out the theme's effect (snow). The bar slices use that
+// version: they show nothing of the window body, so flakes there would only
+// cost the visitor's browser work.
+export function render(cfg: Config, scheme: Scheme, count: number, faces: Faces, decorate = true): [svg: string, bar: Bar] {
   const t = cfg.theme[scheme];
   const right = statText(count) + cfg.right.suffix;
   const b = bar(
@@ -101,7 +104,7 @@ export function render(cfg: Config, scheme: Scheme, count: number, faces: Faces)
   const nameW = measure(faces.display, NAME, 120, -4);
   const titleX = W / 2 - measure(faces.mono, TITLE, 15) / 2;
   const iconY = BAR_Y + (BAR_H - ICON) / 2;
-  const snowing = cfg.effect?.kind === "snow";
+  const snowing = decorate && cfg.effect?.kind === "snow";
   const parts = [
     FULL_HEAD,
     "<defs>", style(snowing), `<clipPath id="win"><rect width="${W}" height="${H}" rx="10"/></clipPath>`,
@@ -133,13 +136,15 @@ export function render(cfg: Config, scheme: Scheme, count: number, faces: Faces)
   return [parts.join(""), b];
 }
 
-export function slices(svg: string, b: Bar): Record<"top" | "left" | "middle" | "right", string> {
-  if (!svg.startsWith(FULL_HEAD)) throw new Error("slices() needs the full banner from render()");
+// barSvg is the banner the three bar slices are cut from. It defaults to svg.
+export function slices(svg: string, b: Bar, barSvg: string = svg): Record<"top" | "left" | "middle" | "right", string> {
+  if (!svg.startsWith(FULL_HEAD) || !barSvg.startsWith(FULL_HEAD)) throw new Error("slices() needs the full banner from render()");
   const body = svg.slice(FULL_HEAD.length);
+  const barBody = barSvg.slice(FULL_HEAD.length);
   return {
     top: head(0, 0, W, BAR_Y) + body,
-    left: head(0, BAR_Y, b.cut1, BAR_H) + body,
-    middle: head(b.cut1, BAR_Y, b.cut2 - b.cut1, BAR_H) + body,
-    right: head(b.cut2, BAR_Y, W - b.cut2, BAR_H) + body,
+    left: head(0, BAR_Y, b.cut1, BAR_H) + barBody,
+    middle: head(b.cut1, BAR_Y, b.cut2 - b.cut1, BAR_H) + barBody,
+    right: head(b.cut2, BAR_Y, W - b.cut2, BAR_H) + barBody,
   };
 }

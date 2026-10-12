@@ -84,3 +84,16 @@ test("loadTheme returns colors and effect", () => {
   expect(Object.keys(theme).sort()).toEqual(["colors", "effect"]);
   expect(theme.effect?.kind).toBe("snow");
 });
+
+test("only the top slice carries the snow", async () => {
+  // The bar slices show nothing above y 204, so animating flakes there is wasted work in the visitor's browser.
+  const { build } = await import("../src/build");
+  const files = build(snowy(), 2875);
+  for (const [path, content] of Object.entries(files)) {
+    if (path === "README.md") continue;
+    const isTop = path.startsWith("assets/top-");
+    expect(content.includes('class="snow"'), path).toBe(isTop);
+    expect(content.includes("@keyframes fall"), path).toBe(isTop);
+    expect(content.includes('class="cur"'), path).toBe(true);
+  }
+});

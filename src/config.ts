@@ -74,7 +74,7 @@ function checkLink(link: string, name: string): void {
   if (!link.startsWith("https://")) {
     throw new ConfigError(`segments.${name}.link must start with https://`);
   }
-  if (!/^https:\/\/[^\/\s?#]+/.test(link) || /\s/.test(link)) {
+  if (!/^https:\/\/[^\/\s?#]+/.test(link) || /\s/.test(link) || !URL.canParse(link)) {
     throw new ConfigError(`segments.${name}.link is not a complete https URL`);
   }
 }
@@ -208,14 +208,16 @@ export function load(root: string, today: Date = new Date()): Config {
     if (!SEGMENT_NAMES.includes(name)) throw new ConfigError(`config.toml has unknown segment ${name}`);
   }
   const base = loadTheme(root, raw.theme ?? "default");
+  const left = segment(segments.left ?? {}, "left", true);
+  const middle = segment(segments.middle ?? {}, "middle", true);
+  const right = segment(segments.right ?? {}, "right", false);
   const rule = activeRule(schedule(root, raw.schedule), today);
   const theme = rule?.theme ?? base;
-  const right = segment(segments.right ?? {}, "right", false);
   return {
     theme: theme.colors,
     effect: theme.effect,
-    left: segment(segments.left ?? {}, "left", true),
-    middle: segment(segments.middle ?? {}, "middle", true),
+    left,
+    middle,
     right: rule?.suffix != null ? { ...right, suffix: rule.suffix } : right,
   };
 }

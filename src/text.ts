@@ -172,9 +172,12 @@ function quadRun(pen: PathPen, points: Point[]): void {
   pen.quadTo(points[n - 1][0], points[n - 1][1], points[n][0], points[n][1]);
 }
 
-// Walks the raw TrueType contour points in the same order, and with the same
-// arithmetic, as fontTools does. Implied points are computed after the
-// transform, which is what keeps the output byte-identical to the first build.
+// Walks the raw TrueType contour points in the same order as fontTools does,
+// computing implied points after the transform. That keeps the committed banner
+// byte-identical to the first (Python) build. Composite glyphs such as "j" and
+// accented letters can differ from that build by 0.01 at some sizes.
+// _getContours is a private fontkit API: fontkit is pinned to an exact version,
+// and the golden test fails when its output shifts.
 function drawGlyph(pen: PathPen, glyph: any, scale: number, dx: number, dy: number): void {
   for (const contour of glyph._getContours() as { onCurve: boolean; x: number; y: number }[][]) {
     let points = contour.map((p) => ({ on: p.onCurve, at: [scale * p.x + 0 * p.y + dx, 0 * p.x + -scale * p.y + dy] as Point }));

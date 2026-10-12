@@ -20,7 +20,8 @@ export function build(root: string, count: number, options: { fontsRoot?: string
   for (const scheme of SCHEMES) {
     const [svg, b] = render(cfg, scheme, count, faces);
     bar = b;
-    for (const [name, part] of Object.entries(slices(svg, b))) {
+    const barSvg = cfg.effect ? render(cfg, scheme, count, faces, false)[0] : svg;
+    for (const [name, part] of Object.entries(slices(svg, b, barSvg))) {
       // The content hash is part of the name: a changed image has a new URL,
       // so a browser cache can never pair an old image with a new README.
       const digest = createHash("sha256").update(part).digest("hex").slice(0, 8);
@@ -66,7 +67,8 @@ function parseArgs(argv: string[]): { count: number | null; root: string; today?
     else if (argv[i] === "--date") {
       // Noon UTC: the calendar day is the same in every time zone the build could run in.
       const today = new Date(`${value}T12:00:00Z`);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "") || Number.isNaN(today.getTime())) throw new ConfigError("--date must be YYYY-MM-DD");
+      // The round trip rejects days that do not exist (02-30 would roll over to March).
+      if (Number.isNaN(today.getTime()) || today.toISOString().slice(0, 10) !== value) throw new ConfigError("--date must be YYYY-MM-DD and a real calendar day");
       args.today = today;
       i++;
     } else throw new StatError(`usage: bun run build [--count N] [--root DIR] [--date YYYY-MM-DD], got ${argv[i]}`);

@@ -111,3 +111,16 @@ test("an emoji suffix on a rule reaches the config", () => {
   const repo = scheduled('\n[[schedule]]\nfrom = "02-01"\nto = "02-02"\ntheme = "spooky"\nsuffix = " \\U0001F384"\n');
   expect(load(repo, day("2026-02-01")).right.suffix).toBe(" " + cp(0x1f384));
 });
+
+test("a --date that is not a real calendar day fails", async () => {
+  const { spyOn } = await import("bun:test");
+  const spy = spyOn(console, "error").mockImplementation(() => {});
+  try {
+    for (const bad of ["2026-02-30", "2027-02-29", "2026-04-31"]) {
+      expect(await main(["--root", scheduled(), "--count", "5", "--date", bad])).toBe(1);
+    }
+    expect(String(spy.mock.calls[0][0])).toContain("--date must be YYYY-MM-DD");
+  } finally {
+    spy.mockRestore();
+  }
+});
