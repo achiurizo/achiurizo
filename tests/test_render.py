@@ -88,3 +88,14 @@ def test_slices_change_only_the_viewbox(cfg, faces):
     for part in parts.values():
         assert part.split(">", 1)[1] == body
         xml.dom.minidom.parseString(part)
+
+
+def test_right_suffix_follows_the_count(cfg, faces):
+    pumpkin = chr(0x1F383)
+    probe = dataclasses.replace(cfg, right=dataclasses.replace(cfg.right, suffix=" " + pumpkin))
+    svg, with_suffix = render.render(probe, "dark", 2875, faces)
+    _, plain = render.render(cfg, "dark", 2875, faces)
+    xml.dom.minidom.parseString(svg)
+    assert svg.count("<text") == 1 and pumpkin + "</text>" in svg
+    assert f'fill="{cfg.theme["dark"]["seg3_fg"]}">{pumpkin}' in svg
+    assert with_suffix.right_x < plain.right_x

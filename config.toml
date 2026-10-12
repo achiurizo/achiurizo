@@ -1,5 +1,5 @@
 # Active theme: a file name in themes/, without the extension.
-theme = "default"
+theme = "halloween"
 
 [segments.left]
 text = "since 2008"                      # sits after the GitHub mark
@@ -9,5 +9,7 @@ text = "drifting thoughts of a model"    # plain text, emoji allowed
 link = "https://github.com/achiurizo/dreeft"
 title = "dreeft"                         # tooltip, optional
 
-# [segments.right] shows the live contribution count. It takes an optional
-# link and title, never text.
+# The right segment shows the live contribution count. It takes an optional
+# link, title and suffix (text after the count), never text.
+[segments.right]
+suffix = " \U0001F383"                 # jack-o'-lantern

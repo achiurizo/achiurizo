@@ -147,3 +147,16 @@ def test_unknown_segment_name_fails(repo):
         f.write('\n[segments.center]\ntext = "x"\n')
     with pytest.raises(config.ConfigError, match="unknown segment center"):
         config.load(repo)
+
+
+def test_right_segment_takes_a_suffix(repo):
+    with (repo / "config.toml").open("a") as f:
+        f.write('\n[segments.right]\nsuffix = " !"\n')
+    assert config.load(repo).right.suffix == " !"
+    assert config.load(repo).middle.suffix == ""
+
+
+def test_suffix_is_only_for_the_right_segment(repo):
+    edit(repo / "config.toml", 'title = "dreeft"', 'suffix = "x"')
+    with pytest.raises(config.ConfigError, match="segments.middle has unknown key suffix"):
+        config.load(repo)

@@ -31,6 +31,7 @@ class Segment:
     text: str
     link: str | None = None
     title: str | None = None
+    suffix: str = ""   # right segment only: text after the live stat
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,8 @@ def _check_link(link: str, name: str) -> None:
 def _segment(raw: dict, name: str, takes_text: bool) -> Segment:
     if not isinstance(raw, dict):
         raise ConfigError(f"segments.{name} must be a table")
-    unknown = sorted(set(raw) - SEGMENT_KEYS)
+    allowed = SEGMENT_KEYS if takes_text else SEGMENT_KEYS | {"suffix"}
+    unknown = sorted(set(raw) - allowed)
     if unknown:
         raise ConfigError(f"segments.{name} has unknown key {unknown[0]}")
     for key, value in raw.items():
@@ -80,7 +82,7 @@ def _segment(raw: dict, name: str, takes_text: bool) -> Segment:
     link = raw.get("link")
     if link is not None:
         _check_link(link, name)
-    return Segment(text, link, raw.get("title"))
+    return Segment(text, link, raw.get("title"), raw.get("suffix", ""))
 
 
 def _theme(root: pathlib.Path, name: str) -> dict[str, dict[str, str]]:

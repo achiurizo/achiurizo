@@ -65,7 +65,7 @@ def _arrow(x: float, direction: int, fill: str) -> str:
 
 def render(cfg: Config, scheme: str, count: int, faces: Faces) -> tuple[str, layout.Bar]:
     t = cfg.theme[scheme]
-    right = stat_text(count)
+    right = stat_text(count) + cfg.right.suffix
     b = layout.bar(
         lambda s, size: text.measure(faces.mono, s, size),
         lambda s, size: text.measure(faces.mono_bold, s, size),
