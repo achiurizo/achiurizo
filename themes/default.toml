@@ -1,0 +1,30 @@
+# Every color in the banner. Copy this file to make a new theme, then set
+# `theme` in config.toml to the new file name.
+
+[dark]
+window_bg = "#151b23"
+window_border = "#3d444d"
+chrome = "#8b949e"
+wordmark = "#e6edf3"
+cursor = "#e058f5"
+bar_bg = "#212830"
+seg1_bg = "#2f3742"
+seg1_fg = "#e6edf3"
+seg2_bg = "#e058f5"
+seg2_fg = "#0d1117"
+seg3_bg = "#2f3742"
+seg3_fg = "#e6edf3"
+
+[light]
+window_bg = "#f6f8fa"
+window_border = "#d1d9e0"
+chrome = "#59636e"
+wordmark = "#1f2328"
+cursor = "#a81fbd"
+bar_bg = "#eaeef2"
+seg1_bg = "#d8dee4"
+seg1_fg = "#1f2328"
+seg2_bg = "#a81fbd"
+seg2_fg = "#ffffff"
+seg3_bg = "#d8dee4"
+seg3_fg = "#1f2328"
