@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import pathlib
+import re
 import sys
 
 from scripts import config, layout, readme, render, stat
@@ -13,13 +15,23 @@ def build(root: pathlib.Path, count: int) -> dict[str, str]:
     cfg = config.load(root)
     faces = render.load_faces(root)
     files: dict[str, str] = {}
+    paths: dict[str, dict[str, str]] = {}
     for scheme in config.SCHEMES:
         svg, bar = render.render(cfg, scheme, count, faces)
         for name, part in render.slices(svg, bar).items():
-            files[f"assets/{name}-{scheme}.svg"] = part
+            # The content hash is part of the name: a changed image has a new URL,
+            # so a browser cache can never pair an old image with a new README.
+            digest = hashlib.sha256(part.encode()).hexdigest()[:8]
+            path = f"assets/{name}-{scheme}.{digest}.svg"
+            files[path] = part
+            paths.setdefault(name, {})[scheme] = path
     # Bar geometry depends on text only, so both schemes share it.
-    files["README.md"] = readme.readme(cfg, layout.widths(bar))
+    files["README.md"] = readme.readme(cfg, layout.widths(bar), paths)
     return files
+
+
+# File names this build owns in assets/, with or without a content hash.
+OWN_SLICE = re.compile(r"(top|left|middle|right)-(dark|light)(\.[0-9a-f]{8})?\.svg")
 
 
 def _write_all(root: pathlib.Path, files: dict[str, str]) -> None:
@@ -38,6 +50,10 @@ def _write_all(root: pathlib.Path, files: dict[str, str]) -> None:
             staged.append((tmp, target))
         for tmp, target in staged:
             os.replace(tmp, target)
+        # Slices from the previous build have other names now. Remove them.
+        for old in (root / "assets").iterdir():
+            if OWN_SLICE.fullmatch(old.name) and f"assets/{old.name}" not in files:
+                old.unlink()
     finally:
         for tmp, _ in staged:
             tmp.unlink(missing_ok=True)

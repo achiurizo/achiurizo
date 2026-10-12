@@ -6,10 +6,10 @@ from html import escape
 from scripts.config import Config, Segment
 
 
-def _picture(name: str, alt: str, width: str) -> str:
+def _picture(paths: dict[str, str], alt: str, width: str) -> str:
     return (
-        f'<picture><source media="(prefers-color-scheme: dark)" srcset="assets/{name}-dark.svg">'
-        f'<img src="assets/{name}-light.svg" alt="{escape(alt)}" width="{width}" align="top"></picture>'
+        f'<picture><source media="(prefers-color-scheme: dark)" srcset="{escape(paths["dark"])}">'
+        f'<img src="{escape(paths["light"])}" alt="{escape(alt)}" width="{width}" align="top"></picture>'
     )
 
 
@@ -20,12 +20,13 @@ def _linked(picture: str, segment: Segment) -> str:
     return f'<a href="{escape(segment.link)}"{title}>{picture}</a>'
 
 
-def readme(cfg: Config, pct: dict[str, str]) -> str:
+def readme(cfg: Config, pct: dict[str, str], paths: dict[str, dict[str, str]]) -> str:
+    """paths[slice][scheme] is the image path, for example paths["top"]["dark"]."""
     # No whitespace between tags: a space or newline would show as a gap between images.
     return (
-        _picture("top", "achiurizo", "100%")
-        + _linked(_picture("left", f"On GitHub {cfg.left.text}", pct["left"]), cfg.left)
-        + _linked(_picture("middle", cfg.middle.text, pct["middle"]), cfg.middle)
-        + _linked(_picture("right", "Contributions, all time", pct["right"]), cfg.right)
+        _picture(paths["top"], "achiurizo", "100%")
+        + _linked(_picture(paths["left"], f"On GitHub {cfg.left.text}", pct["left"]), cfg.left)
+        + _linked(_picture(paths["middle"], cfg.middle.text, pct["middle"]), cfg.middle)
+        + _linked(_picture(paths["right"], "Contributions, all time", pct["right"]), cfg.right)
         + "\n"
     )
