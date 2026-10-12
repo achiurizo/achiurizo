@@ -7,6 +7,7 @@ import pytest
 from scripts import config, layout, render
 
 ROOT = pathlib.Path(__file__).parent.parent
+FIX = pathlib.Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +17,7 @@ def faces():
 
 @pytest.fixture(scope="module")
 def cfg():
-    return config.load(ROOT)
+    return config.load(FIX)
 
 
 def test_stat_text():

@@ -22,6 +22,27 @@ def build(root: pathlib.Path, count: int) -> dict[str, str]:
     return files
 
 
+def _write_all(root: pathlib.Path, files: dict[str, str]) -> None:
+    """Write every file under a temporary name, then move all into place.
+
+    A write that fails leaves the previous files untouched, so the slices and
+    README.md never end up as a mix of two builds.
+    """
+    staged: list[tuple[pathlib.Path, pathlib.Path]] = []
+    try:
+        for path, content in files.items():
+            target = root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_name(target.name + ".tmp")
+            tmp.write_text(content, encoding="utf-8", newline="\n")
+            staged.append((tmp, target))
+        for tmp, target in staged:
+            os.replace(tmp, target)
+    finally:
+        for tmp, _ in staged:
+            tmp.unlink(missing_ok=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--count", type=int, help="contribution count; fetched from GitHub when absent")
@@ -38,11 +59,11 @@ def main(argv: list[str] | None = None) -> int:
     except (config.ConfigError, layout.LayoutError, stat.StatError) as error:
         print(f"build failed: {error}", file=sys.stderr)
         return 1
-    # Every output exists in memory before the first write.
-    for path, content in files.items():
-        target = args.root / path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content)
+    try:
+        _write_all(args.root, files)
+    except OSError as error:
+        print(f"build failed: {error}", file=sys.stderr)
+        return 1
     print(f"wrote {len(files)} files, {render.stat_text(count)}")
     return 0
 

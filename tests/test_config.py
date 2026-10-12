@@ -5,13 +5,13 @@ import pytest
 
 from scripts import config
 
-ROOT = pathlib.Path(__file__).parent.parent
+FIX = pathlib.Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
 def repo(tmp_path):
-    shutil.copy(ROOT / "config.toml", tmp_path / "config.toml")
-    shutil.copytree(ROOT / "themes", tmp_path / "themes")
+    shutil.copy(FIX / "config.toml", tmp_path / "config.toml")
+    shutil.copytree(FIX / "themes", tmp_path / "themes")
     return tmp_path
 
 
@@ -30,14 +30,6 @@ def test_loads_default(repo):
     assert cfg.right.text == "" and cfg.right.link is None
     for scheme in config.SCHEMES:
         assert set(cfg.theme[scheme]) == set(config.THEME_KEYS)
-
-
-def test_default_theme_accent_is_on_the_middle_segment(repo):
-    cfg = config.load(repo)
-    for scheme in config.SCHEMES:
-        t = cfg.theme[scheme]
-        assert t["seg2_bg"] == t["cursor"]
-        assert t["seg1_bg"] == t["seg3_bg"]
 
 
 def test_missing_theme_key_fails(repo):

@@ -8,14 +8,14 @@ import pytest
 from scripts import build
 
 ROOT = pathlib.Path(__file__).parent.parent
+FIX = pathlib.Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
 def repo(tmp_path):
-    for name in ("config.toml",):
-        shutil.copy(ROOT / name, tmp_path / name)
-    for name in ("themes", "fonts"):
-        shutil.copytree(ROOT / name, tmp_path / name)
+    shutil.copy(FIX / "config.toml", tmp_path / "config.toml")
+    shutil.copytree(FIX / "themes", tmp_path / "themes")
+    shutil.copytree(ROOT / "fonts", tmp_path / "fonts")
     return tmp_path
 
 
@@ -58,3 +58,19 @@ def test_main_fails_without_token_or_count(repo, monkeypatch, capsys):
     assert build.main(["--root", str(repo)]) == 1
     assert "GITHUB_TOKEN" in capsys.readouterr().err
     assert not (repo / "assets").exists()
+
+
+def test_read_only_asset_does_not_leave_a_mixed_set(repo):
+    assert build.main(["--root", str(repo), "--count", "2875"]) == 0
+    (repo / "assets" / "middle-dark.svg").chmod(0o444)
+    assert build.main(["--root", str(repo), "--count", "9"]) == 0
+    expected = build.build(repo, 9)
+    for path, content in expected.items():
+        assert (repo / path).read_text() == content, path
+
+
+def test_unwritable_output_fails_cleanly(repo, capsys):
+    (repo / "assets").write_text("not a directory")
+    assert build.main(["--root", str(repo), "--count", "2875"]) == 1
+    assert "build failed" in capsys.readouterr().err
+    assert not (repo / "README.md").exists()

@@ -71,9 +71,25 @@ def test_split_runs_joins_zwj_sequence(mono):
         assert text.split_runs(mono, "a" + cluster + "b") == [(False, "a"), (True, cluster), (False, "b")]
 
 
-def test_split_runs_drops_extender_after_a_letter(mono):
-    # A variation selector after a character the font draws has nothing to extend.
-    assert text.split_runs(mono, "a\uFE0Fb") == [(False, "ab")]
+def test_split_runs_keeps_flag_pairs_together(mono):
+    japan = chr(0x1F1EF) + chr(0x1F1F5)
+    france = chr(0x1F1EB) + chr(0x1F1F7)
+    assert text.split_runs(mono, "a" + japan + france + "b") == [(False, "a"), (True, japan), (True, france), (False, "b")]
+
+
+def test_split_runs_keeps_keycap_together(mono):
+    keycap = "1" + chr(0xFE0F) + chr(0x20E3)
+    assert text.split_runs(mono, "a" + keycap + "b") == [(False, "a"), (True, keycap), (False, "b")]
+
+
+def test_split_runs_keeps_tag_sequence_together(mono):
+    england = chr(0x1F3F4) + "".join(chr(0xE0000 + ord(c)) for c in "gbeng") + chr(0xE007F)
+    assert text.split_runs(mono, england) == [(True, england)]
+
+
+def test_split_runs_variation_selector_turns_a_letter_into_a_slot(mono):
+    # U+FE0F asks for emoji presentation, so the character before it leaves the outlined run.
+    assert text.split_runs(mono, "ab" + chr(0xFE0F) + "c") == [(False, "a"), (True, "b" + chr(0xFE0F)), (False, "c")]
 
 
 def test_measure_counts_slot_width(mono):

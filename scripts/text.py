@@ -17,8 +17,14 @@ from fontTools.ttLib import TTFont
 SLOT_EM = 1.2
 EMOJI_FONTS = "Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif"
 ZWJ = 0x200D
-# Code points that extend the previous emoji: joiner, variation selector, skin tones.
-EXTENDERS = {ZWJ, 0xFE0F} | set(range(0x1F3FB, 0x1F400))
+VS16 = 0xFE0F    # asks for emoji presentation of the character before it
+KEYCAP = 0x20E3
+# Code points that extend the previous emoji: joiner, variation selector, keycap, skin tones, flag tags.
+EXTENDERS = {ZWJ, VS16, KEYCAP} | set(range(0x1F3FB, 0x1F400)) | set(range(0xE0020, 0xE0080))
+
+
+def _is_flag_letter(cp: int) -> bool:
+    return 0x1F1E6 <= cp <= 0x1F1FF
 
 
 def num(v: float) -> str:
@@ -40,15 +46,24 @@ def split_runs(face: Face, s: str) -> list[tuple[bool, str]]:
     runs: list[tuple[bool, str]] = []
     for ch in s:
         cp = ord(ch)
+        last = runs[-1][1] if runs else ""
         in_slot = bool(runs) and runs[-1][0]
-        if in_slot and (cp in EXTENDERS or ord(runs[-1][1][-1]) == ZWJ):
-            runs[-1] = (True, runs[-1][1] + ch)
+        if in_slot and (cp in EXTENDERS or ord(last[-1]) == ZWJ):
+            runs[-1] = (True, last + ch)
+        elif in_slot and _is_flag_letter(cp) and len(last) == 1 and _is_flag_letter(ord(last)):
+            runs[-1] = (True, last + ch)
+        elif cp in (VS16, KEYCAP) and last:
+            # The character before it is one the font draws: move it into a slot of its own.
+            runs.pop()
+            if last[:-1]:
+                runs.append((False, last[:-1]))
+            runs.append((True, last[-1] + ch))
         elif cp in EXTENDERS:
             continue
         elif cp not in face.cmap:
             runs.append((True, ch))
-        elif runs and not runs[-1][0]:
-            runs[-1] = (False, runs[-1][1] + ch)
+        elif runs and not in_slot:
+            runs[-1] = (False, last + ch)
         else:
             runs.append((False, ch))
     return runs
