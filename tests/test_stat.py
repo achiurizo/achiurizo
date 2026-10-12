@@ -32,3 +32,16 @@ def test_total_rejects_null_user():
 def test_total_rejects_missing_year():
     with pytest.raises(stat.StatError, match="y2009"):
         stat.total({"data": {"user": {"y2008": {"contributionCalendar": {"totalContributions": 1}}, "y2009": None}}})
+
+
+@pytest.mark.parametrize("bad", [
+    {"errors": ["x"]},
+    [1, 2],
+    "nope",
+    {"data": {"user": {"y2008": {"contributionCalendar": {}}}}},
+    {"data": {"user": {"y2008": {"contributionCalendar": {"totalContributions": "7"}}}}},
+    {"data": {"user": "x"}},
+])
+def test_total_rejects_unexpected_shapes(bad):
+    with pytest.raises(stat.StatError):
+        stat.total(bad)

@@ -22,8 +22,15 @@ def query(login: str, first_year: int, last_year: int) -> str:
 
 
 def total(payload: dict) -> int:
+    try:
+        return _total(payload)
+    except (AttributeError, KeyError, TypeError, IndexError) as error:
+        raise StatError(f"GitHub API answer has an unexpected shape: {error!r}") from None
+
+
+def _total(payload: dict) -> int:
     if payload.get("errors"):
-        raise StatError("GitHub API error: " + payload["errors"][0].get("message", "unknown"))
+        raise StatError("GitHub API error: " + str(payload["errors"][0].get("message", "unknown")))
     user = (payload.get("data") or {}).get("user")
     if not user:
         raise StatError("GitHub API returned no user")
@@ -31,7 +38,10 @@ def total(payload: dict) -> int:
     for alias, collection in user.items():
         if not collection:
             raise StatError(f"GitHub API returned no data for {alias}")
-        count += collection["contributionCalendar"]["totalContributions"]
+        year = collection["contributionCalendar"]["totalContributions"]
+        if not isinstance(year, int) or isinstance(year, bool):
+            raise TypeError(f"{alias} total is {year!r}")
+        count += year
     return count
 
 
@@ -47,5 +57,6 @@ def fetch(token: str, login: str = "achiurizo", first_year: int = 2008, last_yea
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return total(json.load(response))
-    except OSError as error:
+    except (OSError, ValueError) as error:
+        # ValueError covers a body that is not JSON.
         raise StatError(f"GitHub API request failed: {error}") from error

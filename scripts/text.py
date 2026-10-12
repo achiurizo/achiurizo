@@ -73,7 +73,8 @@ def _shape(face: Face, s: str, size: float, tracking: float):
     buf = hb.Buffer()
     buf.add_str(s)
     buf.guess_segment_properties()
-    hb.shape(face.hb, buf, {"kern": True, "liga": False})
+    # Ligatures off: "->" in bar copy stays two characters.
+    hb.shape(face.hb, buf, {"kern": True, "liga": False, "calt": False})
     scale = size / face.upem
     placed, x = [], 0.0
     for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
@@ -98,7 +99,7 @@ def draw(face: Face, s: str, x: float, y: float, size: float, fill: str, trackin
             width = SLOT_EM * size
             parts.append(
                 f'<text x="{num(x + width / 2)}" y="{num(y)}" font-size="{num(size)}" '
-                f'text-anchor="middle" font-family="{EMOJI_FONTS}">{escape(run)}</text>'
+                f'text-anchor="middle" font-family="{EMOJI_FONTS}" fill="{fill}">{escape(run)}</text>'
             )
             x += width
             continue

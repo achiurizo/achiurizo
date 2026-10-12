@@ -53,12 +53,14 @@ def bar(regular, bold, left: str, middle: str, right: str) -> Bar:
                 cut1=math.ceil(seg1_end + ARROW) + 4,
                 cut2=round((seg2_end + ARROW + seg3_start - ARROW) / 2),
             )
+    cell = bold("m", size)
     room = bold(middle, size) + slack
-    budget = int(room // bold("m", size))
+    budget = int(room // cell)
+    used = math.ceil(bold(middle, size) / cell)
     if budget < 1:
         raise LayoutError(f"status bar copy does not fit at {size}px: the left text and the stat leave no room for the middle text")
     raise LayoutError(
-        f"status bar copy does not fit at {size}px: middle text is {len(middle)} characters, the budget is {budget}"
+        f"status bar copy does not fit at {size}px: middle text takes {used} character cells, the budget is {budget} (an emoji takes two)"
     )
 
 

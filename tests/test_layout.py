@@ -31,7 +31,7 @@ def test_segments_never_overlap():
 
 
 def test_too_long_copy_fails_with_budget():
-    with pytest.raises(layout.LayoutError, match=r"middle text is 60 characters, the budget is \d+"):
+    with pytest.raises(layout.LayoutError, match=r"middle text takes 60 character cells, the budget is \d+"):
         layout.bar(cells, cells, LEFT, "x" * 60, "2,875 contributions")
 
 
@@ -46,3 +46,11 @@ def test_widths_sum_to_just_under_100():
     assert 99.9 < total <= 100
     assert set(w) == {"left", "middle", "right"}
     assert all(v.endswith("%") for v in w.values())
+
+
+def test_budget_message_counts_cells_not_code_points():
+    # The measuring function, not len(), decides how wide the copy is: an emoji slot is two cells.
+    def wide(s, size):
+        return sum(1.2 if ch == "x" else 0.6 for ch in s) * size
+    with pytest.raises(layout.LayoutError, match=r"middle text takes 120 character cells"):
+        layout.bar(cells, wide, LEFT, "x" * 60, "2,875 contributions")

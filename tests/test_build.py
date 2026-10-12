@@ -74,3 +74,15 @@ def test_unwritable_output_fails_cleanly(repo, capsys):
     assert build.main(["--root", str(repo), "--count", "2875"]) == 1
     assert "build failed" in capsys.readouterr().err
     assert not (repo / "README.md").exists()
+
+
+def test_negative_count_is_rejected(repo, capsys):
+    assert build.main(["--root", str(repo), "--count", "-5"]) == 1
+    assert "count must be 0 or more" in capsys.readouterr().err
+    assert not (repo / "assets").exists()
+
+
+def test_bad_config_reports_build_failed_not_a_traceback(repo, capsys):
+    (repo / "config.toml").write_text("theme = 5\n")
+    assert build.main(["--root", str(repo), "--count", "1"]) == 1
+    assert capsys.readouterr().err.startswith("build failed: ")

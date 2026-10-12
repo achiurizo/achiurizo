@@ -107,3 +107,16 @@ def test_draw_output_parses_for_markup_characters(mono):
     out = text.draw(mono, 'a & <b> "c"', 0, 20, 20, "#fff")
     xml.dom.minidom.parseString(f"<g>{out}</g>")
     assert "<text" not in out and "&" not in out
+
+
+def test_slot_text_carries_the_fill(mono):
+    # A character the font lacks that is not an emoji (CJK, say) is drawn by a system font in this color.
+    out = text.draw(mono, chr(0x65E5), 0, 20, 20, "#abcdef")
+    assert out.startswith("<text ") and 'fill="#abcdef"' in out
+
+
+def test_programming_ligatures_are_off(mono):
+    plain = text.draw(mono, "-", 0, 20, 20, "#fff") + text.draw(mono, ">", 12, 20, 20, "#fff")
+    joined = text.draw(mono, "->", 0, 20, 20, "#fff")
+    path = lambda s: [p.split('d="')[1].rstrip('"/>') for p in s.split("<path")[1:]]
+    assert "".join(path(joined)) == "".join(path(plain))

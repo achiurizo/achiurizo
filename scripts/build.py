@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         count = args.count
+        if count is not None and count < 0:
+            raise stat.StatError("count must be 0 or more")
         if count is None:
             token = os.environ.get("GITHUB_TOKEN")
             if not token:
