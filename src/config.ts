@@ -12,7 +12,10 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 const THEME_NAME = /^[a-z0-9_-]+$/;
 const SEGMENT_KEYS = ["text", "link", "title"];
 const SEGMENT_NAMES = ["left", "middle", "right"];
-const TOP_KEYS = ["theme", "segments"];
+const TOP_KEYS = ["theme", "segments", "schedule"];
+const RULE_KEYS = ["from", "to", "theme", "suffix"];
+const EFFECT_KEYS = ["kind", "dark", "light"];
+const MONTH_DAY = /^(\d{2})-(\d{2})$/;
 // C0 and C1 control characters, line breaks included. One of these would break the
 // SVG or split the one-line README.
 const CONTROL = /[\x00-\x1f\x7f-\x9f]/;
@@ -28,8 +31,20 @@ export interface Segment {
 
 export type Theme = Record<Scheme, Record<string, string>>;
 
+// Decoration drawn inside the window body. "snow" is the only kind so far.
+export interface Effect {
+  kind: "snow";
+  colors: Record<Scheme, string>;
+}
+
+export interface ThemeFile {
+  colors: Theme;
+  effect: Effect | null;
+}
+
 export interface Config {
   theme: Theme;
+  effect: Effect | null;
   left: Segment;
   middle: Segment;
   right: Segment;
@@ -83,7 +98,23 @@ function segment(raw: unknown, name: string, takesText: boolean): Segment {
   return { text, link, title: (raw.title as string | undefined) ?? null, suffix: (raw.suffix as string | undefined) ?? "" };
 }
 
-export function loadTheme(root: string, name: unknown): Theme {
+function effect(raw: unknown, label: string): Effect | null {
+  if (raw === undefined) return null;
+  if (!isTable(raw)) throw new ConfigError(`${label} [effect] must be a table`);
+  for (const key of Object.keys(raw)) {
+    if (!EFFECT_KEYS.includes(key)) throw new ConfigError(`${label} [effect] has unknown key ${key}`);
+  }
+  if (raw.kind !== "snow") throw new ConfigError(`${label} [effect] kind must be snow`);
+  const colors = {} as Record<Scheme, string>;
+  for (const scheme of SCHEMES) {
+    const value = raw[scheme];
+    if (typeof value !== "string" || !HEX.test(value)) throw new ConfigError(`${label} [effect] ${scheme} must be #rrggbb`);
+    colors[scheme] = value;
+  }
+  return { kind: "snow", colors };
+}
+
+export function loadTheme(root: string, name: unknown): ThemeFile {
   if (typeof name !== "string" || !THEME_NAME.test(name)) {
     throw new ConfigError(`theme name ${JSON.stringify(name)} may hold only a-z, 0-9, _ and -`);
   }
@@ -92,6 +123,11 @@ export function loadTheme(root: string, name: unknown): Theme {
     throw new ConfigError(`theme file not found: themes/${name}.toml`);
   }
   const raw = readToml(path, `themes/${name}.toml`);
+  for (const key of Object.keys(raw)) {
+    if (key !== "effect" && !(SCHEMES as readonly string[]).includes(key)) {
+      throw new ConfigError(`themes/${name}.toml has unknown table ${key}`);
+    }
+  }
   const theme = {} as Theme;
   for (const scheme of SCHEMES) {
     const table = raw[scheme];
@@ -109,10 +145,59 @@ export function loadTheme(root: string, name: unknown): Theme {
     }
     theme[scheme] = { ...(table as Record<string, string>) };
   }
-  return theme;
+  return { colors: theme, effect: effect(raw.effect, `themes/${name}.toml`) };
 }
 
-export function load(root: string): Config {
+interface Rule {
+  from: number; // month * 100 + day
+  to: number;
+  theme: ThemeFile;
+  suffix: string | null;
+}
+
+function monthDay(value: unknown, label: string): number {
+  const match = typeof value === "string" ? MONTH_DAY.exec(value) : null;
+  const month = Number(match?.[1]);
+  const day = Number(match?.[2]);
+  // 2024 is a leap year, so 02-29 is accepted.
+  if (!match || month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(2024, month, 0)).getUTCDate()) {
+    throw new ConfigError(`${label} must be a date as MM-DD`);
+  }
+  return month * 100 + day;
+}
+
+// Every rule is checked on every build, so a broken holiday theme fails long
+// before its first day.
+function schedule(root: string, raw: unknown): Rule[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || !raw.every(isTable)) throw new ConfigError("schedule must be a list of tables");
+  return raw.map((rule: Table, i) => {
+    const label = `schedule rule ${i + 1}`;
+    for (const key of Object.keys(rule)) {
+      if (!RULE_KEYS.includes(key)) throw new ConfigError(`${label} has unknown key ${key}`);
+    }
+    const from = monthDay(rule.from, `${label}: from`);
+    const to = monthDay(rule.to, `${label}: to`);
+    if (rule.theme === undefined) throw new ConfigError(`${label}: theme is missing`);
+    const suffix = rule.suffix ?? null;
+    if (suffix !== null && typeof suffix !== "string") throw new ConfigError(`${label}: suffix must be a string`);
+    if (suffix !== null && CONTROL.test(suffix)) throw new ConfigError(`${label}: suffix holds a control character or a line break`);
+    return { from, to, theme: loadTheme(root, rule.theme), suffix };
+  });
+}
+
+// The first rule whose range holds today's UTC date. A range may wrap over the
+// new year (from 12-20 to 01-05).
+function activeRule(rules: Rule[], today: Date): Rule | null {
+  const date = (today.getUTCMonth() + 1) * 100 + today.getUTCDate();
+  for (const rule of rules) {
+    const inRange = rule.from <= rule.to ? date >= rule.from && date <= rule.to : date >= rule.from || date <= rule.to;
+    if (inRange) return rule;
+  }
+  return null;
+}
+
+export function load(root: string, today: Date = new Date()): Config {
   const raw = readToml(join(root, "config.toml"), "config.toml");
   for (const key of Object.keys(raw)) {
     if (!TOP_KEYS.includes(key)) throw new ConfigError(`config.toml has unknown key ${key}`);
@@ -122,10 +207,15 @@ export function load(root: string): Config {
   for (const name of Object.keys(segments)) {
     if (!SEGMENT_NAMES.includes(name)) throw new ConfigError(`config.toml has unknown segment ${name}`);
   }
+  const base = loadTheme(root, raw.theme ?? "default");
+  const rule = activeRule(schedule(root, raw.schedule), today);
+  const theme = rule?.theme ?? base;
+  const right = segment(segments.right ?? {}, "right", false);
   return {
-    theme: loadTheme(root, raw.theme ?? "default"),
+    theme: theme.colors,
+    effect: theme.effect,
     left: segment(segments.left ?? {}, "left", true),
     middle: segment(segments.middle ?? {}, "middle", true),
-    right: segment(segments.right ?? {}, "right", false),
+    right: rule?.suffix != null ? { ...right, suffix: rule.suffix } : right,
   };
 }

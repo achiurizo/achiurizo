@@ -1,0 +1,36 @@
+# Christmas: pine window, green outer segments, red on the linked segment and
+# the cursor, snow falling in the window body.
+
+[dark]
+window_bg = "#0c1a14"
+window_border = "#24503a"
+chrome = "#8fbfa3"
+wordmark = "#f5f1e6"
+cursor = "#d62839"
+bar_bg = "#12301f"
+seg1_bg = "#1f5c3a"
+seg1_fg = "#eaf5ec"
+seg2_bg = "#d62839"
+seg2_fg = "#ffffff"
+seg3_bg = "#1f5c3a"
+seg3_fg = "#eaf5ec"
+
+[light]
+window_bg = "#f6faf5"
+window_border = "#b9d8c2"
+chrome = "#3f7355"
+wordmark = "#12301f"
+cursor = "#c1121f"
+bar_bg = "#dcefe1"
+seg1_bg = "#a8d5b5"
+seg1_fg = "#12301f"
+seg2_bg = "#c1121f"
+seg2_fg = "#ffffff"
+seg3_bg = "#a8d5b5"
+seg3_fg = "#12301f"
+
+# Optional decoration. "snow" is the only kind. One flake color per scheme.
+[effect]
+kind = "snow"
+dark = "#ffffff"
+light = "#7fb4d6"

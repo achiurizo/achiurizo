@@ -1,5 +1,6 @@
-# Active theme: a file name in themes/, without the extension.
-theme = "halloween"
+# Theme used when no schedule rule below matches today's date.
+# A theme is a file name in themes/, without the extension.
+theme = "default"
 
 [segments.left]
 text = "since 2008"                      # sits after the GitHub mark
@@ -11,5 +12,18 @@ title = "dreeft"                         # tooltip, optional
 
 # The right segment shows the live contribution count. It takes an optional
 # link, title and suffix (text after the count), never text.
-[segments.right]
+
+# Dated rules. The first rule whose range holds today's date (UTC) replaces the
+# theme, and the right segment's suffix when the rule sets one. from and to are
+# MM-DD, both days included. A range may wrap over the new year.
+[[schedule]]
+from = "10-01"
+to = "10-31"
+theme = "halloween"
 suffix = " \U0001F383"                 # jack-o'-lantern
+
+[[schedule]]
+from = "11-01"
+to = "12-31"
+theme = "christmas"
+suffix = " \U0001F384"                 # tree

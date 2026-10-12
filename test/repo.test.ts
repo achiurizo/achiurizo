@@ -11,11 +11,19 @@ test("the live config builds", () => {
   expect(Object.keys(build(ROOT, 1234))).toHaveLength(9);
 });
 
+test("the live config builds on every day of the year", () => {
+  // Catches a dated rule whose theme or copy does not fit.
+  for (let dayOfYear = 0; dayOfYear < 366; dayOfYear++) {
+    const today = new Date(Date.UTC(2028, 0, 1 + dayOfYear, 12));
+    expect(Object.keys(build(ROOT, 123456, { today })), today.toISOString()).toHaveLength(9);
+  }
+});
+
 test("every theme file loads", () => {
   // A holiday theme that is not active yet still gets checked.
   const names = readdirSync(join(ROOT, "themes")).filter((n) => n.endsWith(".toml")).map((n) => n.slice(0, -5));
   expect(names).toContain("default");
-  for (const name of names) expect(Object.keys(loadTheme(ROOT, name)).sort()).toEqual([...SCHEMES].sort());
+  for (const name of names) expect(Object.keys(loadTheme(ROOT, name).colors).sort()).toEqual([...SCHEMES].sort());
 });
 
 test("vendored fonts cover the banner's characters and are monospace where expected", () => {

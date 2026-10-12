@@ -9,10 +9,53 @@ const TITLE = "~/achiurizo";
 const TITLE_H = 36;
 // GitHub mark, Octicons mark-github-16 (MIT).
 const OCTO = "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z";
-const STYLE =
-  "<style>.cur{animation:blink 1.2s steps(1,end) infinite}" +
-  "@keyframes blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
-  "@media (prefers-reduced-motion:reduce){.cur{animation:none}}</style>";
+const FLAKES = 28;
+
+function style(snow: boolean): string {
+  return (
+    "<style>.cur{animation:blink 1.2s steps(1,end) infinite}" +
+    "@keyframes blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
+    (snow
+      ? "@keyframes fall{from{transform:translateY(0)}to{transform:translateY(190px)}}" +
+        "@keyframes sway{0%,100%{transform:translateX(-7px)}50%{transform:translateX(7px)}}"
+      : "") +
+    `@media (prefers-reduced-motion:reduce){.cur{animation:none}${snow ? ".snow{display:none}" : ""}}</style>`
+  );
+}
+
+// Small seeded generator (mulberry32): the same flakes on every build.
+function random(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Flakes start just above the window body and fall past the status bar. The
+// clip path keeps them inside the body. A negative delay puts each flake
+// mid-fall on the first frame.
+function snow(color: string): string {
+  const next = random(20261225);
+  let flakes = "";
+  for (let i = 0; i < FLAKES; i++) {
+    const x = 12 + next() * 822;
+    const r = 1.1 + next() * 2.1;
+    const fall = 7 + next() * 9;
+    const sway = 3 + next() * 4;
+    const delay = next() * fall;
+    const opacity = 0.45 + next() * 0.5;
+    const offset = next() * sway;
+    flakes +=
+      `<g style="animation:sway ${sway.toFixed(1)}s ease-in-out -${offset.toFixed(1)}s infinite">` +
+      `<circle cx="${x.toFixed(1)}" cy="30" r="${r.toFixed(1)}" fill="${color}" opacity="${opacity.toFixed(2)}" ` +
+      `style="animation:fall ${fall.toFixed(1)}s linear -${delay.toFixed(1)}s infinite"/></g>`;
+  }
+  return `<g class="snow" clip-path="url(#sky)">${flakes}</g>`;
+}
 
 function head(x: number, y: number, w: number, h: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">`;
@@ -58,11 +101,15 @@ export function render(cfg: Config, scheme: Scheme, count: number, faces: Faces)
   const nameW = measure(faces.display, NAME, 120, -4);
   const titleX = W / 2 - measure(faces.mono, TITLE, 15) / 2;
   const iconY = BAR_Y + (BAR_H - ICON) / 2;
+  const snowing = cfg.effect?.kind === "snow";
   const parts = [
     FULL_HEAD,
-    "<defs>", STYLE, `<clipPath id="win"><rect width="${W}" height="${H}" rx="10"/></clipPath>`, "</defs>",
+    "<defs>", style(snowing), `<clipPath id="win"><rect width="${W}" height="${H}" rx="10"/></clipPath>`,
+    snowing ? `<clipPath id="sky"><rect x="1" y="${TITLE_H + 1}" width="${W - 2}" height="${BAR_Y - TITLE_H - 1}"/></clipPath>` : "",
+    "</defs>",
     `<rect x=".5" y=".5" width="${W - 1}" height="${H - 1}" rx="10" fill="${t.window_bg}"/>`,
     `<rect x="1" y="${TITLE_H}" width="${W - 2}" height="1" fill="${t.window_border}"/>`,
+    snowing ? snow(cfg.effect!.colors[scheme]) : "",
     ...[22, 42, 62].map((cx) => `<circle cx="${cx}" cy="18" r="5.5" fill="none" stroke="${t.chrome}"/>`),
     draw(faces.mono, TITLE, titleX, 23, 15, t.chrome),
     draw(faces.display, NAME, 20, 158, 120, t.wordmark, -4),

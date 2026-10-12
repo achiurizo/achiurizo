@@ -11,8 +11,8 @@ import { StatError, fetchTotal } from "./stat";
 // File names this build owns in assets/, with or without a content hash.
 const OWN_SLICE = /^(top|left|middle|right)-(dark|light)(\.[0-9a-f]{8})?\.svg$/;
 
-export function build(root: string, count: number, options: { fontsRoot?: string } = {}): Record<string, string> {
-  const cfg = load(root);
+export function build(root: string, count: number, options: { fontsRoot?: string; today?: Date } = {}): Record<string, string> {
+  const cfg = load(root, options.today);
   const faces = loadFaces(options.fontsRoot ?? root);
   const files: Record<string, string> = {};
   const paths = {} as Paths;
@@ -57,13 +57,19 @@ function writeAll(root: string, files: Record<string, string>): void {
   }
 }
 
-function parseArgs(argv: string[]): { count: number | null; root: string } {
-  const args = { count: null as number | null, root: process.cwd() };
+function parseArgs(argv: string[]): { count: number | null; root: string; today?: Date } {
+  const args: { count: number | null; root: string; today?: Date } = { count: null, root: process.cwd() };
   for (let i = 0; i < argv.length; i++) {
     const value = argv[i + 1];
     if (argv[i] === "--count" && value !== undefined && /^-?\d+$/.test(value)) args.count = Number(argv[++i]);
     else if (argv[i] === "--root" && value !== undefined) args.root = argv[++i];
-    else throw new StatError(`usage: bun run build [--count N] [--root DIR], got ${argv[i]}`);
+    else if (argv[i] === "--date") {
+      // Noon UTC: the calendar day is the same in every time zone the build could run in.
+      const today = new Date(`${value}T12:00:00Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "") || Number.isNaN(today.getTime())) throw new ConfigError("--date must be YYYY-MM-DD");
+      args.today = today;
+      i++;
+    } else throw new StatError(`usage: bun run build [--count N] [--root DIR] [--date YYYY-MM-DD], got ${argv[i]}`);
   }
   return args;
 }
@@ -84,7 +90,7 @@ export async function main(argv: string[]): Promise<number> {
       count = args.count;
     }
     // Every output exists in memory before the first write.
-    files = build(root, count);
+    files = build(root, count, { today: args.today });
   } catch (error) {
     if (error instanceof ConfigError || error instanceof LayoutError || error instanceof StatError) {
       console.error(`build failed: ${error.message}`);

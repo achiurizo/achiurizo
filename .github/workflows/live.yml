@@ -2,7 +2,7 @@ name: live
 
 on:
   schedule:
-    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+    - cron: "17 6 * * *"   # daily 06:17 UTC, so a dated theme rule starts on its day
   workflow_dispatch:
   push:
     branches: [main]
