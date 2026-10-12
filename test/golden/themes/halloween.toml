@@ -1,0 +1,29 @@
+# Halloween: pumpkin orange throughout, bar included.
+
+[dark]
+window_bg = "#1a1008"
+window_border = "#5a3210"
+chrome = "#c98a4b"
+wordmark = "#ffe9d1"
+cursor = "#ff7518"
+bar_bg = "#3d2108"
+seg1_bg = "#7a3d0a"
+seg1_fg = "#ffe3c4"
+seg2_bg = "#ff7518"
+seg2_fg = "#1a0f05"
+seg3_bg = "#7a3d0a"
+seg3_fg = "#ffe3c4"
+
+[light]
+window_bg = "#fff4e6"
+window_border = "#f0c89a"
+chrome = "#9a5a1c"
+wordmark = "#2b1705"
+cursor = "#e8590c"
+bar_bg = "#ffe0b8"
+seg1_bg = "#ffc078"
+seg1_fg = "#3d2108"
+seg2_bg = "#d9480f"
+seg2_fg = "#ffffff"
+seg3_bg = "#ffc078"
+seg3_fg = "#3d2108"

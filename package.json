@@ -1,0 +1,17 @@
+{
+  "name": "achiurizo-profile-header",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run src/build.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "fontkit": "^2.0.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/fontkit": "^2.0.9",
+    "typescript": "^7.0.2"
+  }
+}
